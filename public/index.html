@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameVault | Premium Gear</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <a href="index.html" style="text-decoration: none;">
+                <h1 class="logo">GAME<span>VAULT</span></h1>
+            </a>
+            
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="Search accessories...">
+                <button id="search-btn" onclick="searchProducts()">Search</button>
+            </div>
+
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="orders.html">Orders</a></li>
+                <li><a href="add-product.html" class="admin-link">Admin Portal</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="products-section">
+            <div class="hero-section">
+                <h2 class="main-title">OUR COLLECTION</h2>
+                <p class="subtitle">Premium Gear for Professional Gamers</p>
+            </div>
+
+            <div class="filter-container">
+                <button type="button" class="filter-pill" onclick="fetchProducts('')">All Gear</button>
+                <button type="button" class="filter-pill" onclick="filterByCategory('keyboard')">Keyboard</button>
+                <button type="button" class="filter-pill" onclick="filterByCategory('Mouse')">Mouse</button>
+                <button type="button" class="filter-pill" onclick="filterByCategory('Graphic Card')">GPU</button>
+                <button type="button" class="filter-pill" onclick="filterByCategory('CPU')">CPU</button>
+                <button type="button" class="filter-pill" onclick="filterByCategory('RAM')">RAM</button>
+            </div>
+
+            <div id="product-list" class="product-grid">
+                <div id="loading" class="spinner"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer style="margin-top: 100px; padding: 40px; background: #0b0e14; border-top: 1px solid #333; text-align: center;">
+        <p style="color: #888;">&copy; 2026 GAMEVAULT. Created for Web Development Final Assessment.</p>
+        <p style="color: #444; font-size: 0.8rem;">All payment simulations are for educational purposes only.</p>
+    </footer>
+
+    <script>
+        async function fetchProducts(keyword = '') {
+            const list = document.getElementById('product-list');
+            list.innerHTML = '<div class="spinner"></div>';
+            
+            try {
+                const res = await fetch(`/api/products?keyword=${keyword}`);
+                const products = await res.json();
+                
+                // Handle empty result sets gracefully
+                if (products.length === 0) {
+                    list.innerHTML = '<p class="empty-state">No gear found matching your criteria.</p>';
+                    return;
+                }
+                displayProducts(products);
+            } catch (err) {
+                console.error("Critical Fetch Error:", err);
+                list.innerHTML = '<p class="error">System error: Unable to load hardware catalog.</p>';
+            }
+        }
+
+        
+        async function filterByCategory(category) {
+            const res = await fetch('/api/products');
+            const products = await res.json();
+            const filtered = products.filter(p => p.category.toLowerCase() === category.toLowerCase());
+            displayProducts(filtered);
+        }
+
+        
+        function displayProducts(products) {
+            const list = document.getElementById('product-list');
+            list.innerHTML = products.map(product => {
+                // UI Logic: Check stock levels to determine visual appearance
+                const isOutOfStock = product.countInStock <= 0;
+                
+                return `
+                    <div class="product-card" style="position: relative; opacity: ${isOutOfStock ? '0.7' : '1'}">
+                        ${isOutOfStock ? '<span class="stock-badge-overlay">OUT OF STOCK</span>' : ''}
+                        <img src="${product.image || 'https://via.placeholder.com/300'}" alt="${product.name}">
+                        <div class="product-info">
+                            <span class="category-tag">${product.category}</span>
+                            <h3>${product.name}</h3>
+                            <p class="price">${product.price}€</p>
+                            <button 
+                                onclick="window.location.href='product-details.html?id=${product._id}'" 
+                                class="buy-btn"
+                                style="background: ${isOutOfStock ? '#444' : '#00ff88'}; color: ${isOutOfStock ? '#fff' : '#000'};">
+                                ${isOutOfStock ? 'View Archived' : 'View Details'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        
+        function searchProducts() {
+            const query = document.getElementById('search-input').value;
+            fetchProducts(query);
+        }
+
+        fetchProducts();
+    </script>>
+</body>
+</html>

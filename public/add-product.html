@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameVault | Inventory Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .inventory-management { margin-top: 40px; border-top: 1px solid #30363d; padding-top: 20px; }
+        
+        .inventory-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #161b22;
+            padding: 12px 20px;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .inventory-row:hover { border-color: #00ff88; transform: translateX(5px); }
+        
+        .product-meta { display: flex; flex-direction: column; }
+        .product-name { color: #f0f6fc; font-weight: 600; font-size: 1.1rem; }
+        .product-category { color: #8b949e; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .product-actions { display: flex; align-items: center; gap: 20px; }
+        .stock-indicator { font-family: 'Courier New', Courier, monospace; color: #00ff88; font-weight: bold; }
+
+        .btn-icon-delete {
+            background: rgba(248, 81, 73, 0.1);
+            color: #f85149;
+            border: 1px solid rgba(248, 81, 73, 0.2);
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-icon-delete:hover {
+            background: #f85149;
+            color: white;
+            box-shadow: 0 0 15px rgba(248, 81, 73, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <a href="index.html" style="text-decoration: none;">
+                <h1 class="logo">GAME<span>VAULT</span></h1>
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">Storefront</a></li>
+                <li><a href="add-product.html" class="active">Inventory Lab</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container">
+        <section class="form-section">
+            <h2 style="color: #00ff88; margin-bottom: 5px;">Vault Intake</h2>
+            <p style="color: #8b949e; margin-bottom: 25px;">Register new gaming hardware into the global database.</p>
+            
+            <form id="product-form">
+                <div class="input-group">
+                    <input type="text" id="name" placeholder="Product Name (e.g., DeathAdder V3)" required>
+                    <input type="text" id="brand" placeholder="Brand (e.g., Razer)" required>
+                </div>
+
+                <select id="category" required style="width: 100%; padding: 12px; margin-bottom: 15px; background: #0b0e14; color: white; border: 1px solid #333; border-radius: 4px;">
+                    <option value="" disabled selected>Select Category</option>
+                    <option value="Keyboard">Keyboard</option>
+                    <option value="Mouse">Mouse</option>
+                    <option value="Graphic Card">Graphic Card</option>
+                    <option value="CPU">CPU</option>
+                    <option value="RAM">RAM</option>
+                </select>
+
+                <input type="text" id="image" placeholder="Custom Image URL (Leave blank for category default)">
+                <textarea id="description" placeholder="Technical specifications and features..." maxlength="250"></textarea>
+                
+                <div class="input-group">
+                    <input type="number" id="price" placeholder="Price (€)" step="0.01" min="1" required>
+                    <input type="number" id="countInStock" placeholder="Initial Stock" min="1" required>
+                </div>
+                
+                <button type="submit" id="submit-btn">Authorize & Save Gear</button>
+            </form>
+
+            <div class="inventory-management">
+                <h3 style="color: #f0f6fc; margin-bottom: 15px;">Live Inventory Control</h3>
+                <div id="admin-product-list">
+                    </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const API_URL = "/api/products"; 
+        async function loadInventory() {
+            const list = document.getElementById('admin-product-list');
+            try {
+                const response = await fetch(API_URL);
+                const products = await response.json();
+                
+                if (!products || products.length === 0) {
+                    list.innerHTML = `<p style="text-align:center; color:#888;">No active stock in the Vault.</p>`;
+                    return;
+                }
+
+                list.innerHTML = products.map(p => `
+                    <div class="inventory-row">
+                        <div class="product-meta">
+                            <span class="product-name">${p.name}</span>
+                            <span class="product-category">${p.category} | ${p.brand}</span>
+                        </div>
+                        <div class="product-actions">
+                            <span class="stock-indicator">STK: ${p.countInStock}</span>
+                            <button onclick="deleteProduct('${p._id}')" class="btn-icon-delete" title="Delete Product">
+                                <i class="fas fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) { 
+                console.error("API Connection Error:", err);
+                list.innerHTML = `<p style="color:#ff4444;">Critical: Database connection failed.</p>`;
+            }
+        }
+
+        
+        async function deleteProduct(id) {
+            if (confirm("Are you sure you want to decommission this item? This action is irreversible.")) {
+                try {
+                    const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+                    if (response.ok) {
+                        showToast("Gear decommissioned successfully.");
+                        loadInventory(); 
+                    } else {
+                        showToast("Authorization failed: Item not removed.", true);
+                    }
+                } catch (err) {
+                    showToast("Network Error: Could not reach server.", true);
+                }
+            }
+        }
+
+        
+        function showToast(message, isError = false) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            if(isError) toast.style.borderColor = '#ff4444';
+            toast.innerText = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => toast.classList.add('show'), 100);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        
+        document.getElementById('product-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const productData = {
+                name: document.getElementById('name').value,
+                brand: document.getElementById('brand').value,
+                category: document.getElementById('category').value,
+                image: document.getElementById('image').value,
+                description: document.getElementById('description').value,
+                price: parseFloat(document.getElementById('price').value),
+                countInStock: parseInt(document.getElementById('countInStock').value)
+            };
+
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(productData)
+            });
+
+            if (response.ok) {
+                showToast("Hardware added to secure storage.");
+                document.getElementById('product-form').reset();
+                loadInventory(); 
+            } else {
+                showToast("Validation Error: Please check fields.", true);
+            }
+        });
+
+        
+        loadInventory();
+    </script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GameVault | Product Details</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <a href="index.html" style="text-decoration: none;"><h1 class="logo">GAME<span>VAULT</span></h1></a>
+            <ul class="nav-links">
+                <li><a href="index.html">Shop</a></li>
+                <li><a href="orders.html">Orders</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container" style="margin-top: 50px;">
+        <div id="product-content" style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; background: #161b22; padding: 40px; border-radius: 15px; border: 1px solid #30363d;">
+            <div class="detail-image">
+                <img id="main-img" src="" style="width: 100%; border-radius: 10px; border: 1px solid #333;">
+            </div>
+            
+            <div class="detail-info">
+                <h1 id="p-name" style="font-size: 2.5rem; color: #fff; margin-bottom: 10px;">Loading...</h1>
+                <p id="p-category" style="color: #00ff88; font-weight: bold; text-transform: uppercase; margin-bottom: 20px;">Category</p>
+                
+                <div style="border-top: 1px solid #30363d; border-bottom: 1px solid #30363d; padding: 20px 0; margin-bottom: 20px;">
+                    <p id="p-desc" style="color: #8b949e; line-height: 1.8; font-size: 1.1rem;">Full product description goes here.</p>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                    <div>
+                        <span style="color: #8b949e;">Price</span>
+                        <h2 id="p-price" style="font-size: 2rem; color: #fff;">0.00€</h2>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="color: #8b949e;">Availability</span>
+                        <p id="p-stock" style="font-weight: bold;"></p>
+                    </div>
+                </div>
+
+                <button id="buy-btn" onclick="proceedToCheckout()" class="buy-btn" style="width: 100%; padding: 20px; font-size: 1.2rem;">
+                    SECURE PURCHASE
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const productId = urlParams.get('id');
+
+        async function loadDetails() {
+            try {
+                const res = await fetch('/api/products');
+                const products = await res.json();
+                
+                const product = products.find(p => p._id === productId);
+
+                if(product) {
+                   
+                    document.getElementById('p-name').innerText = product.name;
+                    document.getElementById('p-category').innerText = product.category;
+                    document.getElementById('p-desc').innerText = product.description || "Premium gaming gear verified for quality.";
+                    document.getElementById('p-price').innerText = `${product.price}€`;
+                    document.getElementById('main-img').src = product.image;
+                    
+                    const stockEl = document.getElementById('p-stock');
+                    const buyBtn = document.getElementById('buy-btn');
+
+                    
+                    if(product.countInStock > 0) {
+                        stockEl.innerText = `IN STOCK (${product.countInStock} units)`;
+                        stockEl.style.color = "#00ff88";
+                        buyBtn.disabled = false;
+                        buyBtn.innerText = "PROCEED TO SECURE CHECKOUT";
+                        buyBtn.style.background = "#00ff88";
+                        buyBtn.style.cursor = "pointer";
+                    } else {
+                        stockEl.innerText = "OUT OF STOCK";
+                        stockEl.style.color = "#ff4444";
+                        buyBtn.disabled = true;
+                        buyBtn.innerText = "CURRENTLY UNAVAILABLE";
+                        buyBtn.style.background = "#333";
+                        buyBtn.style.cursor = "not-allowed";
+                    }
+                }
+            } catch (err) {
+                console.error("Hydration Error: Failed to load product metadata:", err);
+            }
+        }
+
+       
+        function proceedToCheckout() {
+            const price = document.getElementById('p-price').innerText.replace('€', '');
+            window.location.href = `checkout.html?id=${productId}&price=${price}`;
+        }
+
+    
+        loadDetails();
+    </script>
+</body>
+</html>
